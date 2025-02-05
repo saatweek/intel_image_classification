@@ -26,6 +26,6 @@ This data was initially published on [https://datahack.analyticsvidhya.com](http
 
 ## Accuracy Comparison
 
-![Accuracy Comparison](https://github.com/saatweek/Intel-Image-Classification/blob/main/training%20accuracy.png)
+![Accuracy Comparison](https://github.com/saatweek/intel_image_classification/blob/main/training%20accuracy.png)
 
-![Accuracy on Validation Data](https://github.com/saatweek/Intel-Image-Classification/blob/main/validation%20accuracy.png)
+![Accuracy on Validation Data](https://github.com/saatweek/intel_image_classification/blob/main/validation%20accuracy.png)
