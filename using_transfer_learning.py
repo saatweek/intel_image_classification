@@ -31,3 +31,15 @@ model = tf.keras.Sequential([base_model,
                              tf.keras.layers.Dense(64, activation='relu'),
                              tf.keras.layers.Dense(6, activation='softmax')])
 model.summary()
+model.compile(loss = 'sparse_categorical_crossentropy', optimizer='adam', metrics = 'acc')
+
+history = model.fit(train_generator, steps_per_epoch=20, epochs=10, validation_data = validation_generator)
+
+fig = go.Figure()
+x = np.linspace(1,10, 10)
+y1 = history.history['acc']
+y2 = history.history['val_acc']
+fig.add_trace(go.Scatter(x = x, y = y1, name = 'training accuracy')),
+fig.add_trace(go.Scatter(x = x, y = y2, name = 'validation accuracy')),
+fig.update_layout(xaxis_title = 'Epochs', yaxis_title = 'accuracy', title = 'Accuracy of Model')
+fig.show()
