@@ -58,23 +58,24 @@ description = "On top of CNN"
 connector_parameters = [256, 200, 256, 6]
 arch = ar.Arch(arch_i, arch_z, arch_c, connector_function, connector_parameters, description)
 
-# Image pipeline from convolution to wnn
+# To predict a single image
+# feature_output = intermediate_layer_model.predict(img_array)
+
+# predict a list of images serially
 # inter_output = []
 # for items in input_arr:
 #     inter_output.append(intermediate_layer_model.predict(items)[0])
-
 # print(inter_output[:2 ])
 # print(len(inter_output))
-# feature_output = intermediate_layer_model.predict(img_array)
-# agent = ao.Agent(arch, notes="On top of CNN", save_meta=False)
 
-# for i in range(len(inter_output)):
-#     agent.next_state(inter_output[i], [label_arr[i]], DD=False, unsequenced=False)
-# agent.next_state_batch(inter_output, label_arr, DD=False, unsequenced=True)
-
-# agent.pickle()
-
-
-#Experimenting with batch processing
+# batch processing
 inter_output = intermediate_layer_model.predict(input_arr)
 print(inter_output.shape)
+
+agent = ao.Agent(arch, notes="On top of CNN", save_meta=False)
+
+for i in range(len(inter_output)):
+    agent.next_state(inter_output[i], [label_arr[i]], DD=False, unsequenced=False)
+agent.next_state_batch(inter_output, label_arr, DD=False, unsequenced=True)
+
+agent.pickle()
