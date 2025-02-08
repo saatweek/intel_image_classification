@@ -4,13 +4,13 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import plotly.graph_objects as go
 import kagglehub
 import os
-import ao_arch as ar
 
 # Download latest version
 path = kagglehub.dataset_download("puneet6060/intel-image-classification")
 
 train_dir = os.path.join(path, os.path.join("seg_train", "seg_train"))
 validation_dir = os.path.join(path, os.path.join("seg_test", "seg_test"))
+pred_dir = os.path.join(path, os.path.join("seg_pred", "seg_pred"))
 
 class myCallback (tf.keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs = {}):
