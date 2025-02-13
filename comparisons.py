@@ -23,15 +23,23 @@ intermediate_layer_model = Model(inputs=ml_model.inputs, outputs=ml_model.get_la
 
 test_input, test_output = preprocessing(validation_dir)
 test_input = intermediate_layer_model.predict(test_input)
-categories = np.digitize(test_input, bins=np.linspace(0, 10, 128))
-ohe_input =  np.array([np.eye(129)[items] for items in categories])
+categories = np.digitize(test_input, bins=np.linspace(0, 10, 31))
+ohe_input = np.array([np.eye(32)[items] for items in categories])
+ohe_input = ohe_input.reshape((ohe_input.shape[0], ohe_input.shape[1] * ohe_input.shape[2]))
+print(ohe_input.shape)
+print(ohe_input[:2])
+print(test_output.shape)
+print(test_output[:2])
 agent._update_neuron_data()
 test_output_wnn = []
 
 
-for idx in range(test_input.shape[0]):
+for idx in range(ohe_input.shape[0]):
+    print(f"{idx} of {ohe_input.shape[0]} done")
     test_output_wnn.append(agent.next_state(ohe_input[idx]))
 test_output_wnn = np.asarray(test_output_wnn)
+print(test_output_wnn.shape)
+print(test_output_wnn[:2])
 print(f"Accuracy of WNN model is : {(test_output*test_output_wnn).sum()/test_output.shape[0]}")
 
 
