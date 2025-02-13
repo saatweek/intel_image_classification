@@ -32,7 +32,7 @@ test_output_wnn = []
 for idx in range(test_input.shape[0]):
     test_output_wnn.append(agent.next_state(ohe_input[idx]))
 test_output_wnn = np.asarray(test_output_wnn)
-print((test_output*test_output_wnn).sum()/test_output.shape[0])
+print(f"Accuracy of WNN model is : {(test_output*test_output_wnn).sum()/test_output.shape[0]}")
 
 
 ## Accuracy for ML model
