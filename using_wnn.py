@@ -76,6 +76,7 @@ if __name__=="__main__":
     inter_output = intermediate_layer_model.predict(training_input)
     categories = np.digitize(inter_output, bins=np.linspace(0, 10, 31))
     ohe_input = np.array([np.eye(32)[items] for items in categories])
+    ohe_input = ohe_input.reshape((ohe_input.shape[0], ohe_input.shape[1]*ohe_input.shape[2]))
     print(ohe_input.shape)
     print(training_output.shape)
     print(training_output[:2])
