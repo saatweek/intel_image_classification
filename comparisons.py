@@ -6,13 +6,8 @@ import pickle
 import plotly as plt
 import kagglehub
 import os
-from using_wnn import  preprocessing, transform_image
+from using_wnn import  preprocessing, transform_image, label_dict, validation_dir
 from tensorflow.keras.models import Model
-
-
-path = kagglehub.dataset_download("puneet6060/intel-image-classification")
-validation_dir = os.path.join(path, os.path.join("seg_test", "seg_test"))
-
 
 ml_model = tf.keras.models.load_model("./convolution.keras")
 
@@ -21,10 +16,10 @@ agent = ao.Agent.unpickle("./On top of CNN.ao.pickle")
 layer_name = 'dense'
 intermediate_layer_model = Model(inputs=ml_model.inputs, outputs=ml_model.get_layer(layer_name).output)
 
-test_input, test_output = preprocessing(validation_dir)
+test_input, test_output = preprocessing(validation_dir, label_dict)
 test_input = intermediate_layer_model.predict(test_input)
-categories = np.digitize(test_input, bins=np.linspace(0, 10, 31))
-ohe_input = np.array([np.eye(32)[items] for items in categories])
+categories = np.digitize(test_input, bins=np.linspace(0, 3, 7))
+ohe_input = np.array([np.eye(8)[items] for items in categories])
 ohe_input = ohe_input.reshape((ohe_input.shape[0], ohe_input.shape[1] * ohe_input.shape[2]))
 print(ohe_input.shape)
 print(ohe_input[:2])
@@ -35,8 +30,11 @@ test_output_wnn = []
 
 
 for idx in range(ohe_input.shape[0]):
-    print(f"{idx} of {ohe_input.shape[0]} done")
-    test_output_wnn.append(agent.next_state(ohe_input[idx]))
+    agent.reset_state()
+    for s in range(3):
+        print(f"{idx} of {ohe_input.shape[0]} done")
+        res=agent.next_state(ohe_input[idx], DD=False)
+    test_output_wnn.append(res)
 test_output_wnn = np.asarray(test_output_wnn)
 print(test_output_wnn.shape)
 print(test_output_wnn[:2])
@@ -67,3 +65,4 @@ for idx in range(ml_out.shape[0]):
     if ml_out[idx]==test_output[idx]:
         count+=1
 print(f'Accuracy of ML model is : {count/ml_out.shape[0]}')
+agent.pickle()
