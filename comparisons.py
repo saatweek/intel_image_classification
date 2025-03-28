@@ -6,7 +6,7 @@ import pickle
 import plotly as plt
 import kagglehub
 import os
-from using_wnn import  preprocessing, transform_image, label_dict, validation_dir
+from cnn_x_wnn import  preprocessing, transform_image, label_dict, validation_dir
 from tensorflow.keras.models import Model
 
 ml_model = tf.keras.models.load_model("./convolution.keras")

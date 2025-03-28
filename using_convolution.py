@@ -1,83 +1,80 @@
-import numpy as np
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import plotly.graph_objects as go
-import kagglehub
-import os
-
-# Download latest version
-path = kagglehub.dataset_download("puneet6060/intel-image-classification")
-
-train_dir = os.path.join(path, os.path.join("seg_train", "seg_train"))
-validation_dir = os.path.join(path, os.path.join("seg_test", "seg_test"))
-pred_dir = os.path.join(path, os.path.join("seg_pred", "seg_pred"))
-
-class myCallback (tf.keras.callbacks.Callback):
-  def on_epoch_end(self, epoch, logs = {}):
-    if (logs.get('acc')>0.95):
-      self.model.stop_training = True
-      print('Enough Accuracy Reached!')
-
-callback = myCallback()
-
-train_datagen = ImageDataGenerator(rescale = 1./255,
-                                   rotation_range=0.3,
-                                   width_shift_range=0.3,
-                                   height_shift_range=0.3,
-                                   shear_range=0.3,
-                                   zoom_range=0.3,
-                                   horizontal_flip=True)
-
-validation_datagen = ImageDataGenerator(rescale = 1./255,
-                                        rotation_range=0.3,
-                                        width_shift_range=0.3,
-                                        height_shift_range=0.3,
-                                        shear_range=0.3,
-                                        zoom_range=0.3,
-                                        horizontal_flip=True)
-    
-train_generator = train_datagen.flow_from_directory(train_dir,
-                                                    target_size = (150, 150),
-                                                    batch_size = 128,
-                                                    class_mode='sparse')
-
-validation_generator = validation_datagen.flow_from_directory(validation_dir,
-                                                              target_size = (150, 150),
-                                                              batch_size = 128,
-                                                              class_mode='sparse')
-
-model = tf.keras.models.Sequential([tf.keras.layers.Conv2D(16, (3, 3), activation = 'relu', input_shape = (150, 150, 3)),
-                                    tf.keras.layers.MaxPooling2D(2, 2),
-                                    tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
-                                    tf.keras.layers.MaxPooling2D(2, 2),
-                                    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-                                    tf.keras.layers.MaxPooling2D(2, 2),
-                                    tf.keras.layers.Flatten(),
-                                    tf.keras.layers.Dense(256, activation='relu'),
-                                    tf.keras.layers.Dense(6, activation = 'softmax')])
-
-model.summary()
-
-#hyperparamters
-num_epochs = 40
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+import time
+from data_prep import cnn_preprocessing, train_dir, validation_dir, CNN, ImageDataset
 
 
-model.compile(loss = 'sparse_categorical_crossentropy',
-              optimizer='adam',
-              metrics = ['acc'])
+# Training function with early stopping at 95% accuracy
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, max_epochs=50):
+    for epoch in range(max_epochs):
+        start_time = time.time()
+        model.train()
+        running_loss, correct_train, total_train = 0.0, 0, 0
 
-history = model.fit(train_generator,
-                    steps_per_epoch=20,
-                    epochs=num_epochs,
-                    validation_data = validation_generator,
-                    callbacks = [callback])
+        for images, labels in train_loader:
+            images, labels = images.to(device), labels.to(device)
 
-model.save('./convolution.keras')
-fig = go.Figure()
-x = np.linspace(1, num_epochs, num_epochs)
-y1 = history.history['acc']
-y2 = history.history['val_acc']
-fig.add_trace(go.Scatter(x = x, y = y1, name = 'training accuracy')),
-fig.add_trace(go.Scatter(x = x, y = y2, name = 'validation accuracy')),
-fig.update_layout(xaxis_title = 'Epochs', yaxis_title = 'accuracy', title = 'Accuracy of Model')
-fig.show()
+            optimizer.zero_grad()
+            _, outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()  # What does this do?
+            _, predicted = torch.max(outputs, 1)
+            labels = torch.argmax(labels, 1)
+            total_train += labels.size(0)
+            correct_train += (predicted == labels).sum().item()
+
+        train_acc = 100 * correct_train / total_train
+
+        #Validation Step
+        model.eval()
+        correct_val, total_val = 0, 0
+        with torch.no_grad():
+            for images, labels in val_loader:
+                images, labels = images.to(device), labels.to(device)
+                _, outputs = model(images)
+
+                _, predicted = torch.max(outputs, 1)
+                labels = torch.argmax(labels, 1)
+                correct_val += (predicted == labels).sum().item()
+                total_val += labels.size(0)
+        val_acc = 100 * correct_val / total_val
+
+        print(f"Epoch {epoch+1}: Loss = {running_loss / len(train_loader):.4f}, Train Accuracy = {train_acc:.2f}%, Validation Accuracy = {val_acc:.2f}%, Time = {time.time() - start_time:.2f}s")
+
+        # Early stopping condition
+        if val_acc >= 95.0:
+            print("\nTraining stopped early as validation accuracy reached 95%")
+            break
+
+if __name__=="__main__":
+    # Check for GPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using {device} for processing")
+
+    # Load the training and validation set
+    train_data, train_label = cnn_preprocessing(train_dir)
+    val_data, val_label = cnn_preprocessing(validation_dir)
+
+    # Assuming X_train, y_train, X_val, y_val are NumPy arrays
+    train_dataset = ImageDataset(train_data, train_label)
+    val_dataset = ImageDataset(val_data, val_label)
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=True)
+
+    # Model initialization
+    model = CNN().to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Train the model
+    train_model(model, train_loader, val_loader, criterion, optimizer, device)
+
+    # Save the trained model
+    torch.save(model.state_dict(), "cnn_model.pth")
+    print("Model saved as cnn_model.pth")
